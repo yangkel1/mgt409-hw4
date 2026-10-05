@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Campus Customs: App Check (HW 4)</title>
+<style>
+  :root { --navy: #00356b; --sky: #e6eef8; --ivory: #fbf7ef; --ink: #18212e; --muted: #5d6675; --ok: #1d6b3a; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--ivory); color: var(--ink); font: 16px/1.6 -apple-system, "Segoe UI", system-ui, sans-serif; }
+  main { width: min(1100px, 100% - 2.5rem); margin: 0 auto; padding: 2.5rem 0 4rem; }
+  h1 { margin: 0 0 .3rem; color: var(--navy); font: 800 2.2rem/1.15 Georgia, serif; }
+  h2 { margin: 0 0 .6rem; color: var(--navy); font: 700 1.55rem/1.2 Georgia, serif; }
+  .meta { color: var(--muted); margin: 0 0 1.5rem; }
+  table { width: 100%; border-collapse: collapse; background: #fff; border: 2px solid var(--navy); border-radius: 12px; overflow: hidden; }
+  th, td { padding: .6rem .8rem; border-bottom: 1px solid #dbe3ee; text-align: left; vertical-align: top; }
+  th { background: var(--navy); color: #fff; }
+  .pass { color: var(--ok); font-weight: 800; white-space: nowrap; }
+  section { margin-top: 2.5rem; padding: 1.5rem; background: #fff; border: 2px solid var(--navy); border-radius: 16px; }
+  .num { display: inline-block; margin-right: .4rem; padding: .05rem .55rem; border-radius: 999px; background: var(--navy); color: #fff; font: 700 1rem system-ui; vertical-align: middle; }
+  figure { margin: 1rem 0 0; }
+  figure img { display: block; width: 100%; border: 1px solid #c9d4e3; border-radius: 10px; }
+  figcaption { margin-top: .5rem; font-size: .98rem; }
+  figcaption strong { color: var(--navy); }
+  .pair { display: grid; grid-template-columns: 0.75fr 1.4fr; gap: 1.2rem; align-items: start; }
+  .chat { margin: .8rem 0 0; padding: .8rem 1rem; border-left: 4px solid var(--navy); background: var(--sky); border-radius: 0 10px 10px 0; }
+  .chat p { margin: .15rem 0; }
+  .db { margin-top: .8rem; font-size: .92rem; }
+  .db table { border-width: 1px; }
+  .db td, .db th { padding: .35rem .6rem; text-align: center; }
+  .zero { color: #b5121b; font-weight: 800; }
+  code { background: #eef2f7; padding: .05rem .3rem; border-radius: 4px; }
+  @media (max-width: 800px) { .pair { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<main>
+  <h1>Campus Customs: App Check</h1>
+  <p class="meta">
+    Tested on the live local site (React + Vite on <code>localhost:5173</code>, FastAPI on <code>localhost:8000</code>,
+    agent model <code>gpt-5.6-luna</code> via Portkey) on 2026-10-05, in Chrome driven by Playwright as a guest shopper.
+    Every chat answer below was compared with <code>data/campus_customs.db</code>.
+  </p>
+
+  <table>
+    <tr><th>#</th><th>Check</th><th>Result</th></tr>
+    <tr><td>1</td><td>Chat checks an item's inventory: honest stock and price from the database</td><td class="pass">✓ Pass</td></tr>
+    <tr><td>2</td><td>Category question ("What hoodies do you have?") puts dynamic product cards on the page, and each card opens its item page</td><td class="pass">✓ Pass</td></tr>
+    <tr><td>3</td><td>Usability feature (Problem 9): a sold-out size gets in-stock alternatives, asked from the product page's "Ask about this item" button</td><td class="pass">✓ Pass</td></tr>
+  </table>
+
+  <!-- ======================= CHECK 1 ======================= -->
+  <section id="inventory">
+    <h2><span class="num">1</span>Chat checks inventory: honest stock and price</h2>
+    <div class="chat">
+      <p><strong>Shopper:</strong> Is the Yale Bowl T Shirt in stock in XL? How many mediums are left, and what's the price?</p>
+      <p><strong>Dan:</strong> The Yale Bowl T Shirt is sold out in XL. There are 5 left in M, and the price is $32.</p>
+    </div>
+    <div class="pair">
+      <figure>
+        <img src="app_check_images/inventory_chat.png" alt="Chat answering a stock and price question about the Yale Bowl T Shirt" />
+        <figcaption><strong>The chat answer.</strong> Dan says XL is sold out, M has 5 left, and the price is $32. The card below the reply is built from the database.</figcaption>
+      </figure>
+      <figure>
+        <img src="app_check_images/inventory_product_page.png" alt="Yale Bowl T Shirt product page showing price and stock by size" />
+        <figcaption><strong>The same item's product page.</strong> It shows $32.00, XL "Sold out", and M "Only 5 left", the same numbers the chat gave.</figcaption>
+      </figure>
+    </div>
+    <div class="db">
+      <strong>Database (<code>catalogue</code> + <code>inventory</code>) for <code>yale-bowl-t-shirt</code>:</strong>
+      <table>
+        <tr><th>Price</th><th>XS</th><th>S</th><th>M</th><th>L</th><th>XL</th><th>XXL</th></tr>
+        <tr><td>$32.00</td><td>25</td><td>15</td><td>5</td><td>12</td><td class="zero">0</td><td>20</td></tr>
+      </table>
+    </div>
+    <p><strong>What this proves:</strong> the chatbot answers stock and price from the live database (it called the
+      <code>check_stock</code> tool), states a sold-out size clearly, and quotes the exact quantity and price. Nothing was guessed.</p>
+  </section>
+
+  <!-- ======================= CHECK 2 ======================= -->
+  <section id="search">
+    <h2><span class="num">2</span>Category question puts dynamic product cards on the page</h2>
+    <div class="chat">
+      <p><strong>Shopper (on Home):</strong> What hoodies do you have?</p>
+      <p><strong>Dan:</strong> We have 27 hoodies, ranging from $45 to $88, and I've put them all on the Products page. Standouts include the Yale Sports Hoodie Tennis, Basic Hoodie Big Yale, and District Vintage Bulldog styles.</p>
+    </div>
+    <figure>
+      <img src="app_check_images/search_hoodies.png" alt="Products page showing 27 hoodie cards from the chat search, with the chat open" />
+      <figcaption><strong>Cards appear on the website.</strong> After the reply, the site moved to Products and rendered all
+        27 matching hoodies as cards (photo, name, price, short description, sizes) under a "From your chat · Hoodies ·
+        27 matching items" banner. The chat links to them with "Showing 27 items on the page →".</figcaption>
+    </figure>
+    <figure>
+      <img src="app_check_images/search_card_opens_item.png" alt="Basic Hoodie Big Yale item page opened by clicking a chat-generated card" />
+      <figcaption><strong>A chat-placed card still opens the item page.</strong> Clicking the "Basic Hoodie Big Yale" card from those
+        results opened <code>/products/basic-hoodie-big-yale</code>, with the large image and full info (description, price, colors, stock by size).</figcaption>
+    </figure>
+    <p><strong>What this proves:</strong> the agent returns structured matches (a <code>search_id</code> for a real database search),
+      the front end renders them as product cards on the page, and the Problem 3 single-item view works for those cards.
+      The count and price range ($45 to $88 across 27 hoodies) come from the full search, not from the model.</p>
+  </section>
+
+  <!-- ======================= CHECK 3 ======================= -->
+  <section id="usability">
+    <h2><span class="num">3</span>Usability feature: sold-out size gets in-stock alternatives</h2>
+    <p>Problem 9 added the <code>find_similar_products</code> agent tool, the context-aware question chips, and the
+      "Ask about this item" button. Here the shopper opens the chat from the Ua Gameday Double Knit Hood page and asks
+      about a size that is sold out.</p>
+    <div class="chat">
+      <p><strong>Shopper (on the product page):</strong> Do you have this in large?</p>
+      <p><strong>Dan:</strong> Sorry, the Ua Gameday Double Knit Hood is sold out in large (L). It's currently available in XS, S, M, and XXL. Here are a few hoodies available in L as alternatives.
+        <em>[cards: Volleyball Left Chest Hoodie · District Vit Hoodie Vintage Bulldog · Squash Left Chest Hoodie]</em></p>
+    </div>
+    <figure>
+      <img src="app_check_images/usability_similar_in_stock.png" alt="Chat on the Ua Gameday hood page offering in-stock alternatives in size L" />
+      <figcaption><strong>A dead end becomes a sale.</strong> Dan knew which item "this" was from the page, said L is sold out,
+        and offered hoodies that <em>are</em> in stock in L as clickable cards. The product-page chips ("Is this in stock in M?",
+        "What colors does this come in?", "Show me something similar") show above the input.</figcaption>
+    </figure>
+    <figure>
+      <img src="app_check_images/usability_size_tiles.png" alt="Size tiles for the Ua Gameday hood showing L and XL sold out" />
+      <figcaption><strong>The product page agrees.</strong> The size tiles show L and XL sold out, so the chat's "sold out in L" is correct.</figcaption>
+    </figure>
+    <div class="db">
+      <strong>Database check:</strong>
+      <table>
+        <tr><th>Product</th><th>Size L in stock</th></tr>
+        <tr><td>Ua Gameday Double Knit Hood (asked about)</td><td class="zero">0</td></tr>
+        <tr><td>Volleyball Left Chest Hoodie (suggested)</td><td>8</td></tr>
+        <tr><td>District Vit Hoodie Vintage Bulldog (suggested)</td><td>15</td></tr>
+        <tr><td>Squash Left Chest Hoodie (suggested)</td><td>25</td></tr>
+      </table>
+    </div>
+    <p><strong>What this proves:</strong> the Problem 9 tool works in the running app. Every alternative it suggested really has
+      size L in stock, because the stock filter runs in the database query, not in the model.</p>
+  </section>
+</main>
+</body>
+</html>
